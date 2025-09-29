@@ -1,4 +1,4 @@
-# 🚗 Driving AI with Deep Q-learning
+# 🐍 Snake AI with Deep Q-learning
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![PyTorch](https://img.shields.io/badge/Pytorch-2.7.1%2Bcu118-red.svg)
