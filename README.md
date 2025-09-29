@@ -10,7 +10,7 @@
 ![Contributions](https://img.shields.io/badge/contributions-welcome-orange.svg)  
 
 ## 📝 Project Description 
-This project showcases an AI that learns to drive a car in a 2D environment using the deep Q-learning algorithm. No hardcoded pathfinding — the agent improves by trial, error, and reward-based learning. 🧠📈
+This project showcases an AI that learns to drive a car in [my 2D driving environment](https://github.com/Thibault-GAREL/driving_game) using the deep Q-learning algorithm. No hardcoded pathfinding — the agent improves by trial, error, and reward-based learning. 🧠📈
 
 
 ---
@@ -34,18 +34,64 @@ Here is an image of what it looks like :
 
 Here, we can see that over 100 steps, the best path have been found (in just more than 5 min).
 
-It is more **hesitant** for the borrowed path but **adapts better** to different circuits than **Genetic algorithm such as [AI_driving_genetic_version](https://github.com/Thibault-GAREL/AI_driving_genetic_version)
+It is more **hesitant** for the borrowed path but **adapts better** to different circuits than **Genetic algorithm** such as [AI_driving_genetic_version](https://github.com/Thibault-GAREL/AI_driving_genetic_version) !
 
 ---
 
 ## ⚙️ How it works
-🎮 The AI controls a car in a Pygame environment with basic physics and obstacles. The game is my [driving_game](https://github.com/Thibault-GAREL/driving_game) !
+🎮 The AI controls a car in a Pygame environment with basic physics and obstacles.
 
 🧠 It uses a Deep Q-Network to estimate the best action to take from any given state.
 
 🧾 Inputs include distance to next checkpoint, velocity, distance to obstacles, and relative angles to next checkpoint.
 
 🎯 Rewards are given based on life time, distance to the next checkpoint, avoiding collisions, velocity to encourage speed and reaching checkpoints.
+
+---
+
+## 📂 Repository structure  
+```bash
+├── Images/                     # Images for the README
+│
+├── models1/                    
+│   └── snake_dqn_model.pth     # Saved model checkpoint
+├── models2/                    
+├── models3/                    
+│
+├── compteur.py                 # Counter script
+├── compteur_executions.txt     # Execution log for the counter
+├── donnees1.xlsx               # Visualization the score for the training
+├── donnees2.xlsx
+│
+├── exw.py                      # Excel writer script
+├── ia.py                       # AI logic
+├── main.py                     # Project entry point
+├── snake.py                    # Snake game implementation
+│
+├── LICENSE                     # Project license
+├── README.md                   # Main documentation
+```
+
+---
+
+## 💻 Run it on Your PC  
+Clone the repository and install dependencies:  
+```bash
+git clone https://github.com/Thibault-GAREL/snake_game.git
+cd snake_game
+
+python -m venv .venv #if you don't have a virtual environnement
+source .venv/bin/activate   # Linux / macOS
+.venv\Scripts\activate      # Windows
+
+pip install neat-python numpy pygame openpyxl
+
+python main.py
+```
+---
+
+## 📖 Inspiration / Sources  
+I code it without any help 😆 !
 
 
 
