@@ -1,7 +1,7 @@
 # 🚗 Driving AI with Deep Q-learning
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
-![PyTorch](https://img.shields.io/badge/pytorch-2.7.1%2Bcu118-red.svg)
+![PyTorch](https://img.shields.io/badge/Pytorch-2.7.1%2Bcu118-red.svg)
 ![Numpy](https://img.shields.io/badge/Numpy-2.2.6-red.svg)
 ![Pygame](https://img.shields.io/badge/Pygame-2.6.1-red.svg)
 ![OpenPyxl](https://img.shields.io/badge/OpenPyxl-3.1.5-red.svg)  
