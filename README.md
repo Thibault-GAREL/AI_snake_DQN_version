@@ -95,7 +95,7 @@ python main.py
 ## 📖 Inspiration / Sources  
 I code it without any help 😆 !
 
-
+Code created by me 😎, Thibault GAREL - [Github](https://github.com/Thibault-GAREL)
 
 
 
