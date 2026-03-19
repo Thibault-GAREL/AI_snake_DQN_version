@@ -342,7 +342,7 @@ def main():
         try:
             agent.load("model_best1.pth")
         except FileNotFoundError:
-            print("[WARN] model_best.pth introuvable — démarrage à zéro.")
+            print("[WARN] model_best1.pth introuvable — démarrage à zéro.")
 
     # ── Lancement ─────────────────────────────────
     if args.eval:
