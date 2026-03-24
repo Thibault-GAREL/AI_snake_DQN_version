@@ -1,5 +1,11 @@
 # 📊 Information DQL - Snake AI
 
+## 🔍 Résumé XAI — Vue d'ensemble
+
+L'analyse XAI de l'agent Snake (Double DQN, 16 entrées, 3 couches cachées 256→128→64) révèle une politique apprise fonctionnelle mais sous-optimale. Les analyses SHAP et de permutation d'importance confirment que les **distances aux murs dominent massivement** les décisions (top 5 : Mur W, NW, E, SW, N avec des importances SHAP > 0.4), tandis que les distances à la nourriture restent quasi-inexploitées sauf quand elles sont alignées. Le réseau souffre d'un **fort taux de neurones morts** (45 % en couche 1, 75 % en couche 2, 73 % en couche 3), signe d'une sur-paramétrisation, et les projections t-SNE/UMAP montrent une **représentation interne peu discriminante** entre situations de jeu. La politique apprise présente un **biais systématique vers l'action LEFT**, visible sur les heatmaps de Q-values et dans tous les waterfalls SHAP quelle que soit la situation. L'évolution temporelle des Q-values illustre clairement deux modes d'échec (boucle oscillante, boucle plate) et un mode réussite (Q-values variables, score 5), confirmant que l'agent a appris à survivre via l'évitement des murs mais n'a pas développé de stratégie active de recherche de nourriture.
+
+---
+
 ## 🎯 Configuration d'Entraînement
 
 ### Temps d'entraînement
