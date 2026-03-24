@@ -53,6 +53,34 @@ The project also includes a full **Explainable AI (XAI)** suite to analyze what 
 
 ---
 
+## 🆚 Comparison — 4 Snake AI approaches
+
+This project is part of a series of **4 Snake AI implementations** using different AI paradigms on the same game :
+
+| Aspect | 🧬 [NEAT](https://github.com/Thibault-GAREL/AI_snake_genetic_version) | 🤖 [DQL (DQN)](https://github.com/Thibault-GAREL/AI_snake_DQL) ★ | 🎯 [PPO](https://github.com/Thibault-GAREL/snake_PPO_V2) | 🌳 [Decision Tree](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version) |
+| --- | --- | --- | --- | --- |
+| **Paradigm** | Evolutionary | Reinforcement Learning | Reinforcement Learning | Imitation Learning |
+| **Algorithm type** | Neuroevolution | Off-policy (Q-learning) | On-policy (Actor-Critic) | Supervised (XGBoost + DAgger) |
+| **Output** | Actions [4] | Q-values [4] | Policy logits [4] + V(s) [1] | Class probabilities [4] |
+| **Input features** | 16 | 16 | 22 | 26 |
+| **Architecture** | Evolving MLP (topology changes) | MLP 16→256→128→64→4 | Actor-Critic shared trunk 22→256→256 | 1 600 boosted trees (400 × 4 classes) |
+| **Hidden neurons / nodes** | ~28 nodes (evolves) | 448 hidden neurons | 896 hidden neurons | ~80k–200k decision nodes |
+| **Exploration** | Genetic mutations + speciation | ε-greedy (1.0 → 0.01) | Entropy bonus (coef 0.05) | DAgger oracle (β : 0.8 → 0.05) |
+| **Memory / Buffer** | Population (100 genomes) | Experience Replay (100 000) | Rollout buffer (2 048 steps) | Supervised buffer (300 000) |
+| **Batch** | — (full population eval.) | 128 | 64 | Full dataset per round |
+| **Training time** | ~15 h | ~30–60 min (GPU) | ~6.2 h | ~6–10 min (GPU) |
+| **Max score** | > 20 | 13 | 21 | **31** |
+| **Mean score** | 10 | 8.55 | **10.18** | ~5–15 (est.) |
+| **Reward signal** | ❌ (fitness only) | ✅ | ✅ | ❌ (oracle labels) |
+| **GPU support** | ❌ | ✅ | ✅ | ✅ |
+| **Sample efficiency** | 🔴 Low | 🟡 Medium | 🔴 Low | 🟢 High |
+| **Intrinsic interpretability** | 🟡 Low | 🔴 Black box | 🔴 Black box | 🟢 High (tree paths) |
+| **XAI suite** | ✅ 4 scripts | ✅ 4 scripts | ✅ 4 scripts | ✅ 4 scripts |
+
+> ★ = current repository
+
+---
+
 ## 🗺️ Network Architecture
 
 ```
