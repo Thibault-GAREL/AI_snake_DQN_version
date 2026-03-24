@@ -3,27 +3,30 @@
 ## 🎯 Configuration d'Entraînement
 
 ### Temps d'entraînement
+
 - **Nombre d'épisodes** : 5 000 épisodes
 - **Étapes max par épisode** : 500 steps
 - **Total d'interactions** : Jusqu'à 2 500 000 steps
 - **Sauvegarde périodique** : Tous les 200 épisodes
 - **Durée estimée** : Non chronométrée dans le code (dépend du matériel)
-  - *Note* : CPU : plusieurs heures | GPU (CUDA) : ~30-60 minutes
+  - _Note_ : CPU : plusieurs heures | GPU (CUDA) : ~30-60 minutes
 
 ---
 
 ## 🧠 Architecture du Réseau Neuronal
 
 ### Nombre de neurones par couche
-| Couche | Type | Neurones | Description |
-|--------|------|----------|-------------|
-| Input | - | 16 | État : 8 distances murs + 8 distances nourriture |
-| **Couche 1** | **Linear + BatchNorm + ReLU** | **256** | Première couche cachée |
-| **Couche 2** | **Linear + ReLU** | **128** | Deuxième couche cachée |
-| **Couche 3** | **Linear + ReLU** | **64** | Troisième couche cachée |
-| Output | Linear | 4 | Q-values (1 par action) |
+
+| Couche       | Type                          | Neurones | Description                                      |
+| ------------ | ----------------------------- | -------- | ------------------------------------------------ |
+| Input        | -                             | 16       | État : 8 distances murs + 8 distances nourriture |
+| **Couche 1** | **Linear + BatchNorm + ReLU** | **256**  | Première couche cachée                           |
+| **Couche 2** | **Linear + ReLU**             | **128**  | Deuxième couche cachée                           |
+| **Couche 3** | **Linear + ReLU**             | **64**   | Troisième couche cachée                          |
+| Output       | Linear                        | 4        | Q-values (1 par action)                          |
 
 ### Détails de l'architecture
+
 ```
 Input (16-dim)
   ↓
@@ -39,6 +42,7 @@ Linear(64 → 4) [Q-values]
 **Total de neurones actifs** : 256 + 128 + 64 = **448 neurones**
 
 ### Utilisation effective
+
 - Couche 1 : **~54.3% de neurones actifs** (45.7% morts)
 - Couche 2 : **~25% de neurones actifs** (75% morts)
 - Couche 3 : **~26.6% de neurones actifs** (73.4% morts)
@@ -48,17 +52,20 @@ Linear(64 → 4) [Q-values]
 ## 💾 Mémoire et Batch
 
 ### Replay Buffer (Expérience Replay)
-| Paramètre | Valeur | Description |
-|-----------|--------|-------------|
-| **REPLAY_CAPACITY** | 100 000 | Taille max du buffer circulaire |
-| **MIN_REPLAY_SIZE** | 1 000 | Transitions minimum avant d'apprendre |
-| **BATCH_SIZE** | 128 | Taille des mini-batches pour l'entraînement |
+
+| Paramètre           | Valeur  | Description                                 |
+| ------------------- | ------- | ------------------------------------------- |
+| **REPLAY_CAPACITY** | 100 000 | Taille max du buffer circulaire             |
+| **MIN_REPLAY_SIZE** | 1 000   | Transitions minimum avant d'apprendre       |
+| **BATCH_SIZE**      | 128     | Taille des mini-batches pour l'entraînement |
 
 ### Calcul mémoire estimé
+
 - Chaque transition : ~40 bytes (état 16 float32 + action int + reward float + next_state 16 float32 + done bool)
 - **Mémoire totale buffer** : 100 000 × 40 bytes ≈ **4 MB**
 
 ### Optimizer & Loss
+
 - **Optimizer** : Adam (lr=1e-3, weight_decay=1e-5)
 - **Loss Function** : SmoothL1Loss (Huber Loss) — robuste aux valeurs aberrantes
 
@@ -67,21 +74,24 @@ Linear(64 → 4) [Q-values]
 ## 📈 Performance et Scores
 
 ### Score Moyen (Baseline)
+
 - **Score moyen de référence** : **8.55** (meilleur agent)
 - Chaque score représente le nombre de nourriture mangée
 - Épisode max : 500 steps (limite temps)
 
 ### Scores Observés
-| Situation | Score | Notes |
-|-----------|-------|-------|
-| **Lors de l'apprentissage** | 0-13 | Variable selon convergence |
-| **Episode 1 (XAI)** | 0 | Agent bloqué dans une boucle |
-| **Episode 2 (XAI)** | 0 | Agent évite muerte mais ne trouve pas la nourriture |
-| **Episode 3 (XAI)** | 5 | Agent actif, trouve la nourriture |
-| **GIF démonstration** | 13 | **Score maximum enregistré** |
-| **Baseline finale** | 8.55 | Score moyen du meilleur modèle |
+
+| Situation                   | Score | Notes                                               |
+| --------------------------- | ----- | --------------------------------------------------- |
+| **Lors de l'apprentissage** | 0-13  | Variable selon convergence                          |
+| **Episode 1 (XAI)**         | 0     | Agent bloqué dans une boucle                        |
+| **Episode 2 (XAI)**         | 0     | Agent évite muerte mais ne trouve pas la nourriture |
+| **Episode 3 (XAI)**         | 5     | Agent actif, trouve la nourriture                   |
+| **GIF démonstration**       | 13    | **Score maximum enregistré**                        |
+| **Baseline finale**         | 8.55  | Score moyen du meilleur modèle                      |
 
 ### Chute de performance (Permutation Features)
+
 - Chaque feature perturbée : chute de **6.5 à 8.5 points**
 - Features les plus critiques :
   1. `Dist. food W` (Ouest) — drop = 8.45
@@ -93,6 +103,7 @@ Linear(64 → 4) [Q-values]
 ## ⚙️ Hyperparamètres Clés
 
 ### Double DQN
+
 - **Epsilon initial** : 1.0 (exploration max)
 - **Epsilon final** : 0.01 (exploitation min)
 - **Epsilon decay** : 0.9995 multiplicatif par épisode
@@ -100,45 +111,48 @@ Linear(64 → 4) [Q-values]
 - **Target Network Update Freq** : Tous les 500 steps
 
 ### Récompenses (Reward Shaping)
-| Action | Récompense |
-|--------|-----------|
-| Manger la nourriture | +10.0 |
-| Collision (mort) | -10.0 |
-| Se rapprocher de la nourriture | +0.5 |
-| S'éloigner de la nourriture | -0.5 |
-| Chaque step | -0.01 |
+
+| Action                         | Récompense |
+| ------------------------------ | ---------- |
+| Manger la nourriture           | +10.0      |
+| Collision (mort)               | -10.0      |
+| Se rapprocher de la nourriture | +0.5       |
+| S'éloigner de la nourriture    | -0.5       |
+| Chaque step                    | -0.01      |
 
 ---
 
 ## 📊 État Vectoriel d'Entrée (16 features)
 
 ### Distances aux obstacles (8 inputs)
+
 Distances normalisées à la diagonale de la grille (13×14)
 
-| # | Direction | Feature |
-|---|-----------|---------|
-| 0 | Nord | `distance_bord_N` |
-| 1 | NE | `distance_bord_NE` |
-| 2 | Est | `distance_bord_E` |
-| 3 | SE | `distance_bord_SE` |
-| 4 | Sud | `distance_bord_S` |
-| 5 | SW | `distance_bord_SW` |
-| 6 | Ouest | `distance_bord_W` |
-| 7 | NW | `distance_bord_NW` |
+| #   | Direction | Feature            |
+| --- | --------- | ------------------ |
+| 0   | Nord      | `distance_bord_N`  |
+| 1   | NE        | `distance_bord_NE` |
+| 2   | Est       | `distance_bord_E`  |
+| 3   | SE        | `distance_bord_SE` |
+| 4   | Sud       | `distance_bord_S`  |
+| 5   | SW        | `distance_bord_SW` |
+| 6   | Ouest     | `distance_bord_W`  |
+| 7   | NW        | `distance_bord_NW` |
 
 ### Distances à la nourriture (8 inputs)
+
 Actives **seulement** si la nourriture est alignée dans cette direction (sinon = 0)
 
-| # | Direction | Feature |
-|---|-----------|---------|
-| 8 | Nord | `distance_food_N` |
-| 9 | NE | `distance_food_NE` |
-| 10 | Est | `distance_food_E` |
-| 11 | SE | `distance_food_SE` |
-| 12 | Sud | `distance_food_S` |
-| 13 | SW | `distance_food_SW` |
-| 14 | Ouest | `distance_food_W` |
-| 15 | NW | `distance_food_NW` |
+| #   | Direction | Feature            |
+| --- | --------- | ------------------ |
+| 8   | Nord      | `distance_food_N`  |
+| 9   | NE        | `distance_food_NE` |
+| 10  | Est       | `distance_food_E`  |
+| 11  | SE        | `distance_food_SE` |
+| 12  | Sud       | `distance_food_S`  |
+| 13  | SW        | `distance_food_SW` |
+| 14  | Ouest     | `distance_food_W`  |
+| 15  | NW        | `distance_food_NW` |
 
 ---
 
@@ -146,13 +160,14 @@ Actives **seulement** si la nourriture est alignée dans cette direction (sinon 
 
 ### Dynamique par époque
 
-| Phase | Épisodes | Comportement |
-|-------|----------|-------------|
-| **Exploration** | 0-500 | Agent oscille au hasard, ε=1.0 |
-| **Transition** | 500-2000 | Premiers apprentissages, ε decay linéaire |
-| **Convergence** | 2000-5000 | Stabilisation progressive, ε≈0.05-0.01 |
+| Phase           | Épisodes  | Comportement                              |
+| --------------- | --------- | ----------------------------------------- |
+| **Exploration** | 0-500     | Agent oscille au hasard, ε=1.0            |
+| **Transition**  | 500-2000  | Premiers apprentissages, ε decay linéaire |
+| **Convergence** | 2000-5000 | Stabilisation progressive, ε≈0.05-0.01    |
 
 ### Caractéristiques observées en XAI
+
 - **Représentation interne** : Très dense, peu de distinction par situation
 - **Dead neurons croissant** : 45% → 75% → 73% (L1 → L2 → L3)
 - **Specialization** : Faible, sauf pour situations rares (Food alignée)
@@ -163,6 +178,7 @@ Actives **seulement** si la nourriture est alignée dans cette direction (sinon 
 ## 🖥️ Matériel & Device
 
 ### Configuration
+
 - **Device** : Automatique (CUDA si disponible, sinon CPU)
 - **PyTorch Version** : 2.x
 - **Support NVIDIA** : CUDA 11.8+ (optionnel)
@@ -180,6 +196,7 @@ model_ep{N}.pth      ← Checkpoint périodiques (200, 400, 600, ..., 5000)
 ```
 
 Chaque modèle stocke :
+
 - État du réseau online
 - État du réseau cible
 - État de l'optimiseur
@@ -192,7 +209,9 @@ Chaque modèle stocke :
 ## 🔬 Résumé XAI
 
 ### Importance des features (SHAP)
+
 **Top 5 features les plus impactantes** :
+
 1. `Dist. Mur Ouest (W)` — 0.503
 2. `Dist. Mur NW` — 0.448
 3. `Dist. Mur Est (E)` — 0.438
@@ -202,6 +221,7 @@ Chaque modèle stocke :
 **Least important** : Distances nourriture diagonales (< 0.01)
 
 ### Stratégie apprise
+
 - Biais dominant : Tourner **LEFT**
 - Évitement murs : Guidé par features de distance murs
 - Recherche nourriture : Réactive seulement quand alignée
@@ -211,11 +231,13 @@ Chaque modèle stocke :
 ## 💡 Insights
 
 ### Efficacité neuronale
+
 Seuls **25-55% des neurones** sont réellement utilisés → réseau sur-paramétré, opportunité d'optimisation
 
 ### Bottleneck
+
 Le réseau n'a appris qu'une **policy locale** (éviter les murs, tourner left), pas de stratégie globale de recherche
 
 ### Features critiques
-**Tous les 16 inputs sont nécessaires** — pas de redondance majeure détectée (permutation importance : drop = 6.5-8.5 pour chaque feature)
 
+**Tous les 16 inputs sont nécessaires** — pas de redondance majeure détectée (permutation importance : drop = 6.5-8.5 pour chaque feature)
