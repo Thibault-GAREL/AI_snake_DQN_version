@@ -218,7 +218,7 @@ def train(agent: DQNAgent, env: SnakeEnv, num_episodes: int, show_every: int):
             if game.show:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        agent.save("model_interrupt.pth")
+                        agent.save("models/model_interrupt.pth")
                         pygame.quit()
                         sys.exit()
 
@@ -255,11 +255,11 @@ def train(agent: DQNAgent, env: SnakeEnv, num_episodes: int, show_every: int):
         # Sauvegarde du meilleur modèle
         if score > best_score:
             best_score = score
-            agent.save("model_best.pth")
+            agent.save("models/model_best.pth")
 
         # Sauvegarde périodique
         if episode % SAVE_EVERY == 0:
-            agent.save(f"model_ep{episode}.pth")
+            agent.save(f"models/model_ep{episode}.pth")
 
         # Log console
         if episode % PRINT_EVERY == 0:
@@ -340,16 +340,16 @@ def main():
 
     if args.load or args.eval:
         try:
-            agent.load("model_best1.pth")
+            agent.load("models/model_best1.pth")
         except FileNotFoundError:
-            print("[WARN] model_best1.pth introuvable — démarrage à zéro.")
+            print("[WARN] models/model_best1.pth introuvable — démarrage à zéro.")
 
     # ── Lancement ─────────────────────────────────
     if args.eval:
         evaluate(agent, env, num_episodes=20)
     else:
         train(agent, env, num_episodes=args.episodes, show_every=args.show_every)
-        agent.save("model_final.pth")
+        agent.save("models/model_final.pth")
 
     if pygame.get_init():
         pygame.quit()

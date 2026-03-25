@@ -257,8 +257,9 @@ class DQNAgent:
         self.episode += 1
 
     # ── Sauvegarde / chargement ──────────────────
-    def save(self, path: str = "model.pth"):
+    def save(self, path: str = "models/model.pth"):
         """Sauvegarde le modèle entraîné."""
+        import os; os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save({
             "online_state_dict":  self.online_net.state_dict(),
             "target_state_dict":  self.target_net.state_dict(),
@@ -269,7 +270,7 @@ class DQNAgent:
         }, path)
         print(f"[DQL] Modèle sauvegardé → {path}")
 
-    def load(self, path: str = "model.pth"):
+    def load(self, path: str = "models/model.pth"):
         """Charge un modèle sauvegardé."""
         checkpoint = torch.load(path, map_location=self.device)
         self.online_net.load_state_dict(checkpoint["online_state_dict"])

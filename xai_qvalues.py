@@ -74,7 +74,7 @@ def load_agent(model_name: str = "best") -> DQNAgent:
     """Charge l'agent depuis le modèle sauvegardé."""
     device = get_device()
     agent  = DQNAgent(device=device)
-    path   = f"model_{model_name}.pth"
+    path   = f"models/model_{model_name}.pth"
     try:
         agent.load(path)
     except FileNotFoundError:

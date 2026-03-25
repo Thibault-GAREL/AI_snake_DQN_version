@@ -105,9 +105,9 @@ def load_agent(model_name: str = "best") -> DQNAgent:
     device = get_device()
     agent  = DQNAgent(device=device)
     try:
-        agent.load(f"model_{model_name}.pth")
+        agent.load(f"models/model_{model_name}.pth")
     except FileNotFoundError:
-        print(f"[WARN] model_{model_name}.pth introuvable — poids aléatoires.")
+        print(f"[WARN] models/model_{model_name}.pth introuvable — poids aléatoires.")
     agent.online_net.eval()
     agent.epsilon = 0.0
     return agent
