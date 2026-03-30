@@ -2,8 +2,16 @@
 dql.py — Agent Deep Q-Learning pour Snake
 ==========================================
 Architecture : DQN avec Double DQN + Experience Replay + Target Network
-Input  : vecteur d'état à 16 features (distances murs + nourriture, 8 directions)
+Input  : vecteur d'état à 28 features standardisées (voir input.md)
 Output : Q-values pour 4 actions (UP=0, RIGHT=1, DOWN=2, LEFT=3)
+
+Changements v2 (2026-03-30) :
+  - STATE_DIM 16 → 28 (features standardisées cross-projet)
+  - BatchNorm → LayerNorm (stable batch size 1 + pas de drift running stats)
+  - Réseau 256→128→64 → 256→256→128 (capacité adaptée à l'espace enrichi)
+  - LEARNING_RATE 1e-3 → 3e-4 (plus stable, moins de neurones morts)
+  - GAMMA 0.95 → 0.99 (horizon long, meilleure planification)
+  - TARGET_UPDATE_FREQ 500 → 1000 (mise à jour plus stable)
 """
 
 import random
@@ -13,32 +21,31 @@ from collections import deque
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 
 
 # ─────────────────────────────────────────────
 #  Hyperparamètres
 # ─────────────────────────────────────────────
-STATE_DIM    = 16       # 8 distances bords/corps + 8 distances nourriture
+STATE_DIM    = 28       # 28 features standardisées (input.md)
 ACTION_DIM   = 4        # UP, RIGHT, DOWN, LEFT
 
 # Réseau
 HIDDEN_1     = 256
-HIDDEN_2     = 128
-HIDDEN_3     = 64
+HIDDEN_2     = 256
+HIDDEN_3     = 128
 
 # Entraînement
-LEARNING_RATE      = 1e-3       # Adam lr — bon compromis stabilité/vitesse pour DQN
-GAMMA              = 0.95       # Discount factor — valeur légèrement < 1 car horizon court
+LEARNING_RATE      = 3e-4       # Plus stable que 1e-3 — réduit les neurones morts
+GAMMA              = 0.99       # Horizon long — meilleure planification séquentielle
 BATCH_SIZE         = 128        # Taille des mini-batches
 REPLAY_CAPACITY    = 100_000    # Taille du replay buffer
-MIN_REPLAY_SIZE    = 1_000      # Nombre de transitions avant de commencer à apprendre
-TARGET_UPDATE_FREQ = 500        # Fréquence (en steps) de mise à jour du réseau cible
+MIN_REPLAY_SIZE    = 1_000      # Transitions avant d'apprendre
+TARGET_UPDATE_FREQ = 1_000      # Fréquence (steps) de mise à jour du réseau cible
 
 # Exploration ε-greedy
 EPS_START  = 1.0        # Exploration maximale au début
 EPS_END    = 0.01       # Exploration minimale
-EPS_DECAY  = 0.9995     # Décroissance multiplicative par épisode
+EPS_DECAY  = 0.9995     # Décroissance par épisode → atteint 0.01 vers l'ep 9200
 
 
 # ─────────────────────────────────────────────
@@ -61,8 +68,11 @@ def get_device() -> torch.device:
 class DQNetwork(nn.Module):
     """
     Réseau fully-connected 3 couches cachées.
-    Batch Normalization sur la 1ère couche pour stabiliser l'entraînement
-    sur des inputs de magnitudes très différentes (distances en pixels).
+    LayerNorm sur les 2 premières couches :
+      - fonctionne avec batch_size=1 (inférence) ET batch_size=128 (entraînement)
+      - pas de drift des running stats contrairement à BatchNorm
+      - réduit le taux de neurones morts
+    Architecture : 28 → LayerNorm → 256 → LayerNorm → 256 → 128 → 4
     """
 
     def __init__(self, state_dim: int = STATE_DIM, action_dim: int = ACTION_DIM):
@@ -71,11 +81,12 @@ class DQNetwork(nn.Module):
         self.net = nn.Sequential(
             # Couche d'entrée
             nn.Linear(state_dim, HIDDEN_1),
-            nn.BatchNorm1d(HIDDEN_1),
+            nn.LayerNorm(HIDDEN_1),
             nn.ReLU(),
 
             # Couche cachée 1
             nn.Linear(HIDDEN_1, HIDDEN_2),
+            nn.LayerNorm(HIDDEN_2),
             nn.ReLU(),
 
             # Couche cachée 2
@@ -259,7 +270,10 @@ class DQNAgent:
     # ── Sauvegarde / chargement ──────────────────
     def save(self, path: str = "models/model.pth"):
         """Sauvegarde le modèle entraîné."""
-        import os; os.makedirs(os.path.dirname(path), exist_ok=True)
+        import os
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         torch.save({
             "online_state_dict":  self.online_net.state_dict(),
             "target_state_dict":  self.target_net.state_dict(),
@@ -267,12 +281,13 @@ class DQNAgent:
             "epsilon":            self.epsilon,
             "steps_done":         self.steps_done,
             "episode":            self.episode,
+            "state_dim":          self.state_dim,
         }, path)
         print(f"[DQL] Modèle sauvegardé → {path}")
 
     def load(self, path: str = "models/model.pth"):
         """Charge un modèle sauvegardé."""
-        checkpoint = torch.load(path, map_location=self.device)
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.online_net.load_state_dict(checkpoint["online_state_dict"])
         self.target_net.load_state_dict(checkpoint["target_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state"])

@@ -41,15 +41,19 @@ The project also includes a full **Explainable AI (XAI)** suite to analyze what 
 
 📊 **Full XAI suite** — 4 independent analysis scripts
 
+📈 **Training logger** — CSV per episode + JSON summary + PNG learning curve
+
+🎯 **28 standardized input features** — unified across all 4 Snake AI projects
+
 ---
 
 ## ⚙️ How it works
 
-🕹️ The AI controls a snake on a 10×14 grid. At each step, it receives a **state vector of 16 features** (distances to walls/body and distances to food in 8 directions) and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT).
+🕹️ The AI controls a snake on a 10×8 grid (800×400 pixels). At each step, it receives a **state vector of 28 standardized features** (distances to obstacles, food directions, immediate danger, current direction, and temporal context) and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT).
 
-🧠 The network is a fully-connected MLP (16 → 256 → 128 → 64 → 4) trained with the Double DQN algorithm. A separate target network is updated every 500 steps to stabilize training.
+🧠 The network is a fully-connected MLP (28 → 256 → 256 → 128 → 4) with **LayerNorm** on the first two layers, trained with the Double DQN algorithm. A separate target network is updated every 1 000 steps to stabilize training.
 
-📈 A reward shaping signal guides the agent toward food even before it reaches it, making early training much more efficient.
+📈 A reward shaping signal guides the agent toward food even before it reaches it, making early training much more efficient. A **stagnation limit** (200 steps without eating) prevents the agent from looping endlessly.
 
 ---
 
@@ -62,15 +66,15 @@ This project is part of a series of **4 Snake AI implementations** using differe
 | **Paradigm** | Evolutionary | Reinforcement Learning | Reinforcement Learning | Imitation Learning |
 | **Algorithm type** | Neuroevolution | Off-policy (Q-learning) | On-policy (Actor-Critic) | Supervised (XGBoost + DAgger) |
 | **Output** | Actions [4] | Q-values [4] | Policy logits [4] + V(s) [1] | Class probabilities [4] |
-| **Input features** | 16 | 16 | 28 | 26 |
-| **Architecture** | Evolving MLP (topology changes) | MLP 16→256→128→64→4 | Actor-Critic shared trunk 28→256→256 | 1 600 boosted trees (400 × 4 classes) |
-| **Hidden neurons / nodes** | ~28 nodes (evolves) | 448 hidden neurons | 896 hidden neurons | ~80k–200k decision nodes |
+| **Input features** | 28 | 28 | 28 | 28 |
+| **Architecture** | Evolving MLP (topology changes) | MLP 28→256→256→128→4 | Actor-Critic shared trunk 28→256→256 | 1 600 boosted trees (400 × 4 classes) |
+| **Hidden neurons / nodes** | ~28 nodes (evolves) | 640 hidden neurons | 896 hidden neurons | ~80k–200k decision nodes |
 | **Exploration** | Genetic mutations + speciation | ε-greedy (1.0 → 0.01) | Entropy bonus (coef 0.05) | DAgger oracle (β : 0.8 → 0.05) |
 | **Memory / Buffer** | Population (100 genomes) | Experience Replay (100 000) | Rollout buffer (2 048 steps) | Supervised buffer (300 000) |
 | **Batch** | — (full population eval.) | 128 | 64 | Full dataset per round |
-| **Training time** | ~15 h | ~30–60 min (GPU) | ~3 h (GPU) | ~12 min (GPU) |
-| **Max score** | > 20 | 13 | **64** | **43** |
-| **Mean score** | 10 | 8.55 | **38.67** | **22.77** |
+| **Training time** | ~15 h | ~2.5 h (GPU) | ~3 h (GPU) | ~12 min (GPU) |
+| **Max score** | > 20 | **45** | **64** | **43** |
+| **Mean score** | 10 | **22.60** | **38.67** | **22.77** |
 | **Reward signal** | ❌ (fitness only) | ✅ | ✅ | ❌ (oracle labels) |
 | **GPU support** | ❌ | ✅ | ✅ | ✅ |
 | **Sample efficiency** | 🔴 Low | 🟡 Medium | 🔴 Low | 🟢 High |
@@ -84,40 +88,77 @@ This project is part of a series of **4 Snake AI implementations** using differe
 ## 🗺️ Network Architecture
 
 ```
-Input (16)  →  Linear(256) → BatchNorm → ReLU
+Input (28)  →  Linear(256) → LayerNorm → ReLU
+            →  Linear(256) → LayerNorm → ReLU
             →  Linear(128) → ReLU
-            →  Linear(64)  → ReLU
             →  Linear(4)   →  Q-values
 ```
 
 <details>
-<summary>📋 State vector — 16 input features</summary>
+<summary>📋 State vector — 28 standardized input features</summary>
 
-### Distances to walls / body (8 inputs)
+### Group 1 — Danger distances (8 features)
 
-| # | Feature |
-|---|---------|
-| 0 | `distance_bord_N` — Distance to obstacle North |
-| 1 | `distance_bord_NE` — Distance to obstacle North-East |
-| 2 | `distance_bord_E` — Distance to obstacle East |
-| 3 | `distance_bord_SE` — Distance to obstacle South-East |
-| 4 | `distance_bord_S` — Distance to obstacle South |
-| 5 | `distance_bord_SW` — Distance to obstacle South-West |
-| 6 | `distance_bord_W` — Distance to obstacle West |
-| 7 | `distance_bord_NW` — Distance to obstacle North-West |
-
-### Distances to food (8 inputs)
+Distance to the nearest obstacle (wall or body segment) in 8 directions.
+Normalized by `max_dist = sqrt(WIDTH² + HEIGHT²)` → range [0, 1].
 
 | # | Feature |
 |---|---------|
-| 8  | `distance_food_N` — Distance to food North |
-| 9  | `distance_food_NE` — Distance to food North-East |
-| 10 | `distance_food_E` — Distance to food East |
-| 11 | `distance_food_SE` — Distance to food South-East |
-| 12 | `distance_food_S` — Distance to food South |
-| 13 | `distance_food_SW` — Distance to food South-West |
-| 14 | `distance_food_W` — Distance to food West |
-| 15 | `distance_food_NW` — Distance to food North-West |
+| 0 | `distance_danger_N` — Distance to nearest obstacle North |
+| 1 | `distance_danger_NE` — Distance to nearest obstacle North-East |
+| 2 | `distance_danger_E` — Distance to nearest obstacle East |
+| 3 | `distance_danger_SE` — Distance to nearest obstacle South-East |
+| 4 | `distance_danger_S` — Distance to nearest obstacle South |
+| 5 | `distance_danger_SW` — Distance to nearest obstacle South-West |
+| 6 | `distance_danger_W` — Distance to nearest obstacle West |
+| 7 | `distance_danger_NW` — Distance to nearest obstacle North-West |
+
+### Group 2 — Food distances, sparse (8 features)
+
+Distance to food in 8 directions. Non-zero only when food is exactly aligned.
+
+| # | Feature |
+|---|---------|
+| 8  | `distance_food_N` — Distance to food if aligned North |
+| 9  | `distance_food_NE` — Distance to food if aligned North-East |
+| 10 | `distance_food_E` — Distance to food if aligned East |
+| 11 | `distance_food_SE` — Distance to food if aligned South-East |
+| 12 | `distance_food_S` — Distance to food if aligned South |
+| 13 | `distance_food_SW` — Distance to food if aligned South-West |
+| 14 | `distance_food_W` — Distance to food if aligned West |
+| 15 | `distance_food_NW` — Distance to food if aligned North-West |
+
+### Group 3 — Food direction, continuous (2 features)
+
+| # | Feature | Range |
+|---|---------|-------|
+| 16 | `food_delta_x` — (food.x − head.x) / WIDTH | [−1, 1] |
+| 17 | `food_delta_y` — (food.y − head.y) / HEIGHT | [−1, 1] |
+
+### Group 4 — Immediate danger, binary (4 features)
+
+| # | Feature | Values |
+|---|---------|--------|
+| 18 | `danger_N` — Obstacle 1 cell North | 0.0 or 1.0 |
+| 19 | `danger_E` — Obstacle 1 cell East | 0.0 or 1.0 |
+| 20 | `danger_S` — Obstacle 1 cell South | 0.0 or 1.0 |
+| 21 | `danger_W` — Obstacle 1 cell West | 0.0 or 1.0 |
+
+### Group 5 — Current direction, one-hot (4 features)
+
+| # | Feature | Values |
+|---|---------|--------|
+| 22 | `dir_UP` | 0.0 or 1.0 |
+| 23 | `dir_RIGHT` | 0.0 or 1.0 |
+| 24 | `dir_DOWN` | 0.0 or 1.0 |
+| 25 | `dir_LEFT` | 0.0 or 1.0 |
+
+### Group 6 — Temporal context (2 features)
+
+| # | Feature | Range |
+|---|---------|-------|
+| 26 | `length_norm` — (snake_length − 1) / (max_cells − 1) | [0, 1] |
+| 27 | `urgency` — steps_since_food / MAX_STEPS | [0, 1] |
 
 ### Output — 4 actions
 
@@ -241,15 +282,26 @@ The global importance ranking (bottom left) confirms wall distances are the most
 ```bash
 ├── snake.py                # Snake game (from snake_game repo)
 ├── dql.py                  # DQN agent, network, replay buffer
-├── main.py                 # Training loop + SnakeEnv wrapper
+├── main.py                 # Training loop + SnakeEnv wrapper + logger
+│
+├── input.md                # 28 standardized features specification
 │
 ├── xai_qvalues.py          # XAI — Q-value analysis
 ├── xai_features.py         # XAI — Feature importance
 ├── xai_activations.py      # XAI — Internal activations
 ├── xai_shap.py             # XAI — SHAP explanations
 │
-├── model_best.pth          # Best model checkpoint (auto-saved)
-├── model_final.pth         # Final model checkpoint
+├── models/                 # Saved models (per run)
+│   └── dqn-28feat_run-01_date-YYYY-MM-DD/
+│       ├── model_best.pth
+│       ├── model_final.pth
+│       └── model_ep*.pth   # Periodic checkpoints
+│
+├── results/                # Training logs (per run)
+│   └── dqn-28feat_run-01_date-YYYY-MM-DD/
+│       ├── metrics.csv     # One row per episode
+│       ├── summary.json    # Hyperparameters + final scores + duration
+│       └── training_curve.png
 │
 ├── xai_qvalues/            # Output plots — Q-values
 ├── xai_features/           # Output plots — Feature importance
@@ -270,7 +322,7 @@ Clone the repository and install dependencies :
 git clone https://github.com/Thibault-GAREL/AI_snake_DQL.git
 cd AI_snake_DQL
 
-python -m venv .venv
+python -m venv .venv # if you don't have a virtual environment
 source .venv/bin/activate     # Linux / macOS
 .venv\Scripts\activate        # Windows
 
@@ -283,10 +335,11 @@ pip install umap-learn    # optional, for xai_activations.py --umap
 ### Train the agent
 
 ```bash
-python main.py                        # silent training (fast)
-python main.py --show-every 100       # display every 100 episodes
+python main.py                        # silent training (fast, ~2.5h GPU)
+python main.py --show-every 1000      # display every 1000 episodes
 python main.py --load                 # resume from model_best.pth
 python main.py --episodes 10000       # custom episode count
+python main.py --run 2                # run #2 (separate folders)
 ```
 
 ### Evaluate a trained model
@@ -311,13 +364,14 @@ python xai_shap.py                    # all SHAP plots
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `GAMMA` | 0.95 | Discount factor |
-| `LEARNING_RATE` | 1e-3 | Adam optimizer |
+| `GAMMA` | 0.99 | Discount factor — long horizon |
+| `LEARNING_RATE` | 3e-4 | Adam optimizer |
 | `BATCH_SIZE` | 128 | Mini-batch size |
 | `REPLAY_CAPACITY` | 100 000 | Replay buffer size |
 | `EPS_START / END` | 1.0 → 0.01 | ε-greedy exploration range |
 | `EPS_DECAY` | 0.9995 | Multiplicative decay per episode |
-| `TARGET_UPDATE_FREQ` | 500 steps | Hard update of target network |
+| `TARGET_UPDATE_FREQ` | 1 000 steps | Hard update of target network |
+| `STAGNATION_LIMIT` | 200 steps | Max steps without eating before episode ends |
 
 ---
 
