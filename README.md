@@ -11,7 +11,7 @@
 ![Contributions](https://img.shields.io/badge/contributions-welcome-orange.svg)
 
 <p align="center">
-  <img src="Images/score13.gif" alt="Gif - AI DQL">
+  <img src="Images/SnakeDQL-Score36.gif" alt="Gif - AI DQL">
 </p>
 
 ## 📝 Project Description
