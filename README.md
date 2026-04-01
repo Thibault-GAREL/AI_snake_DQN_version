@@ -66,7 +66,7 @@ This project is part of a series of **4 Snake AI implementations** using differe
 | **Paradigm** | Evolutionary | Reinforcement Learning | Reinforcement Learning | Imitation Learning |
 | **Algorithm type** | Neuroevolution | Off-policy (Q-learning) | On-policy (Actor-Critic) | Supervised (XGBoost + DAgger) |
 | **Output** | Actions [4] | Q-values [4] | Policy logits [4] + V(s) [1] | Class probabilities [4] |
-| **Input features** | 28 | 28 | 28 | 28 |
+| **Input features** | 16 | 28 | 28 | 26 |
 | **Architecture** | Evolving MLP (topology changes) | MLP 28→256→256→128→4 | Actor-Critic shared trunk 28→256→256 | 1 600 boosted trees (400 × 4 classes) |
 | **Hidden neurons / nodes** | ~28 nodes (evolves) | 640 hidden neurons | 896 hidden neurons | ~80k–200k decision nodes |
 | **Exploration** | Genetic mutations + speciation | ε-greedy (1.0 → 0.01) | Entropy bonus (coef 0.05) | DAgger oracle (β : 0.8 → 0.05) |
