@@ -483,6 +483,66 @@ def evaluate(agent: DQNAgent, env: SnakeEnv, num_episodes: int = 20):
 
 
 # ═══════════════════════════════════════════════
+#  Sélection automatique du meilleur modèle
+# ═══════════════════════════════════════════════
+def find_best_model(base_dir: str = ".") -> str | None:
+    """
+    Cherche le meilleur model_best.pth en comparant les summary.json.
+
+    Critères (par ordre de priorité) :
+      1. final_best_score le plus élevé
+      2. final_mean_100 le plus élevé (tie-breaker)
+      3. Date de modification du fichier .pth (fallback si pas de summary.json)
+
+    Retourne le chemin absolu vers le model_best.pth retenu, ou None.
+    """
+    models_root  = os.path.join(base_dir, "models")
+    results_root = os.path.join(base_dir, "results")
+
+    candidates = []  # (final_best_score, final_mean_100, mtime, path)
+
+    # ── Runs avec summary.json ────────────────
+    if os.path.isdir(results_root):
+        for run_name in os.listdir(results_root):
+            summary_path = os.path.join(results_root, run_name, "summary.json")
+            model_path   = os.path.join(models_root,  run_name, "model_best.pth")
+            if not os.path.isfile(summary_path) or not os.path.isfile(model_path):
+                continue
+            try:
+                with open(summary_path, encoding="utf-8") as f:
+                    s = json.load(f)
+                best_score = s.get("final_best_score", -1)
+                mean_100   = s.get("final_mean_100",   -1.0)
+                mtime      = os.path.getmtime(model_path)
+                candidates.append((best_score, mean_100, mtime, model_path))
+            except (json.JSONDecodeError, OSError):
+                continue
+
+    if candidates:
+        candidates.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+        chosen = candidates[0]
+        print(f"[AUTO] Meilleur modèle sélectionné : {chosen[3]}")
+        print(f"       best_score={chosen[0]}  mean_100={chosen[1]:.2f}")
+        return chosen[3]
+
+    # ── Fallback : model_best.pth le plus récent ──
+    best_path, best_mtime = None, -1.0
+    if os.path.isdir(models_root):
+        for run_name in os.listdir(models_root):
+            model_path = os.path.join(models_root, run_name, "model_best.pth")
+            if os.path.isfile(model_path):
+                mtime = os.path.getmtime(model_path)
+                if mtime > best_mtime:
+                    best_mtime, best_path = mtime, model_path
+
+    if best_path:
+        print(f"[AUTO] Aucun summary.json trouvé — modèle le plus récent : {best_path}")
+        return best_path
+
+    return None
+
+
+# ═══════════════════════════════════════════════
 #  Point d'entrée
 # ═══════════════════════════════════════════════
 def main():
@@ -523,10 +583,11 @@ def main():
     env    = SnakeEnv()
 
     if args.load or args.eval:
-        try:
-            agent.load(os.path.join(models_dir, "model_best.pth"))
-        except FileNotFoundError:
-            print(f"[WARN] {models_dir}/model_best.pth introuvable — démarrage à zéro.")
+        model_path = find_best_model()
+        if model_path:
+            agent.load(model_path)
+        else:
+            print("[WARN] Aucun model_best.pth trouvé dans models/ — démarrage à zéro.")
 
     # ── Lancement ─────────────────────────────────
     if args.eval:
