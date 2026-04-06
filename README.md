@@ -61,7 +61,7 @@ The project also includes a full **Explainable AI (XAI)** suite to analyze what 
 
 This project is part of a series of **4 Snake AI implementations** using different AI paradigms on the same game :
 
-| Aspect | 🧬 [NEAT](https://github.com/Thibault-GAREL/AI_snake_genetic_version) | 🤖 [DQL (DQN)](https://github.com/Thibault-GAREL/AI_snake_DQL) ★ | 🎯 [PPO](https://github.com/Thibault-GAREL/snake_PPO_V2) | 🌳 [Decision Tree](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version) |
+| Aspect | 🧬 [NEAT](https://github.com/Thibault-GAREL/AI_snake_genetic_version) | 🤖 [DQL (DQN)](https://github.com/Thibault-GAREL/AI_snake_DQN_version) ★ | 🎯 [PPO](https://github.com/Thibault-GAREL/AI_snake_PPO_version) | 🌳 [Decision Tree](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version) |
 | --- | --- | --- | --- | --- |
 | **Paradigm** | Evolutionary | Reinforcement Learning | Reinforcement Learning | Imitation Learning |
 | **Algorithm type** | Neuroevolution | Off-policy (Q-learning) | On-policy (Actor-Critic) | Supervised (XGBoost + DAgger) |
@@ -319,8 +319,8 @@ The global importance ranking (bottom left) confirms wall distances are the most
 Clone the repository and install dependencies :
 
 ```bash
-git clone https://github.com/Thibault-GAREL/AI_snake_DQL.git
-cd AI_snake_DQL
+git clone https://github.com/Thibault-GAREL/AI_snake_DQN_version.git
+cd AI_snake_DQN_version
 
 python -m venv .venv # if you don't have a virtual environment
 source .venv/bin/activate     # Linux / macOS
