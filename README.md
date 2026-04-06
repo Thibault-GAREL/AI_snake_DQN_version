@@ -57,32 +57,6 @@ The project also includes a full **Explainable AI (XAI)** suite to analyze what 
 
 ---
 
-## 🆚 Comparison — 4 Snake AI approaches
-
-This project is part of a series of **4 Snake AI implementations** using different AI paradigms on the same game :
-
-| Aspect | 🧬 [NEAT](https://github.com/Thibault-GAREL/AI_snake_genetic_version) | 🌳 [Decision Tree](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version) | 🤖 [DQL (DQN)](https://github.com/Thibault-GAREL/AI_snake_DQN_version) ★ | 🎯 [PPO](https://github.com/Thibault-GAREL/AI_snake_PPO_version) |
-| --- | --- | --- | --- | --- |
-| **Paradigm** | Evolutionary | Imitation Learning | Reinforcement Learning | Reinforcement Learning |
-| **Algorithm type** | Neuroevolution | Supervised (XGBoost + DAgger) | Off-policy (Q-learning) | On-policy (Actor-Critic) |
-| **Architecture** | 16 → ~28 hidden (final, evolved) → 4 | 26 → 1 600 trees (400×4) → 4 | 28 → 256 → 256 → 128 → 4 | 28 → 256 → 256 → {128→4 (π), 128→1 (V)} |
-| **Model complexity** | ~200–500 params (evolves) | ~80k–200k decision nodes | ~140k params | ~145k params |
-| **Exploration** | Genetic mutations + speciation | DAgger oracle (β : 0.8 → 0.05) | ε-greedy (1.0 → 0.01) | Entropy bonus (coef 0.05) |
-| **Memory / Buffer** | Population (100 genomes) | Supervised buffer (300 000) | Experience Replay (100 000) | Rollout buffer (2 048 steps) |
-| **Batch** | — (full population eval.) | Full dataset per round | 128 | 64 |
-| **Training time** | **~15 h** | **~12 min (GPU)** | **~2.5 h (GPU)** | **~3 h (GPU)** |
-| **Max score** | **> 20** | **43** | **45** | **64** |
-| **Mean score** | **10** | **22.77** | **22.60** | **38.67** |
-| **GPU support** | ❌ | ✅ | ✅ | ✅ |
-| **Sample efficiency** | 🔴 Low | 🟢 High | 🟡 Medium | 🔴 Low |
-| **Generalization** | 🟡 Medium | 🔴 Low | 🟡 Medium | 🟢 High |
-| **Intrinsic interpretability** | 🟡 Low | 🟡 Medium (ensemble = grey box) | 🔴 Black box | 🔴 Black box |
-
-> ★ = current repository
-> Each project includes an XAI suite of 4 analysis scripts.
-
----
-
 ## 🗺️ Network Architecture
 
 ```
@@ -168,6 +142,47 @@ Distance to food in 8 directions. Non-zero only when food is exactly aligned.
 | 3 | `LEFT` |
 
 </details>
+
+---
+
+## ⚙️ Key Hyperparameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `GAMMA` | 0.99 | Discount factor — long horizon |
+| `LEARNING_RATE` | 3e-4 | Adam optimizer |
+| `BATCH_SIZE` | 128 | Mini-batch size |
+| `REPLAY_CAPACITY` | 100 000 | Replay buffer size |
+| `EPS_START / END` | 1.0 → 0.01 | ε-greedy exploration range |
+| `EPS_DECAY` | 0.9995 | Multiplicative decay per episode |
+| `TARGET_UPDATE_FREQ` | 1 000 steps | Hard update of target network |
+| `STAGNATION_LIMIT` | 200 steps | Max steps without eating before episode ends |
+
+---
+
+## 🆚 Comparison — 4 Snake AI approaches
+
+This project is part of a series of **4 Snake AI implementations** using different AI paradigms on the same game :
+
+| Aspect | 🧬 [NEAT](https://github.com/Thibault-GAREL/AI_snake_genetic_version) | 🌳 [Decision Tree](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version) | 🤖 [DQL (DQN)](https://github.com/Thibault-GAREL/AI_snake_DQN_version) ★ | 🎯 [PPO](https://github.com/Thibault-GAREL/AI_snake_PPO_version) |
+| --- | --- | --- | --- | --- |
+| **Paradigm** | Evolutionary | Imitation Learning | Reinforcement Learning | Reinforcement Learning |
+| **Algorithm type** | Neuroevolution | Supervised (XGBoost + DAgger) | Off-policy (Q-learning) | On-policy (Actor-Critic) |
+| **Architecture** | 16 → ~28 hidden (final, evolved) → 4 | 26 → 1 600 trees (400×4) → 4 | 28 → 256 → 256 → 128 → 4 | 28 → 256 → 256 → {128→4 (π), 128→1 (V)} |
+| **Model complexity** | ~200–500 params (evolves) | ~80k–200k decision nodes | ~140k params | ~145k params |
+| **Exploration** | Genetic mutations + speciation | DAgger oracle (β : 0.8 → 0.05) | ε-greedy (1.0 → 0.01) | Entropy bonus (coef 0.05) |
+| **Memory / Buffer** | Population (100 genomes) | Supervised buffer (300 000) | Experience Replay (100 000) | Rollout buffer (2 048 steps) |
+| **Batch** | — (full population eval.) | Full dataset per round | 128 | 64 |
+| **Training time** | **~15 h** | **~12 min (GPU)** | **~2.5 h (GPU)** | **~3 h (GPU)** |
+| **Max score** | **> 20** | **43** | **45** | **64** |
+| **Mean score** | **10** | **22.77** | **22.60** | **38.67** |
+| **GPU support** | ❌ | ✅ | ✅ | ✅ |
+| **Sample efficiency** | 🔴 Low | 🟢 High | 🟡 Medium | 🔴 Low |
+| **Generalization** | 🟡 Medium | 🔴 Low | 🟡 Medium | 🟢 High |
+| **Intrinsic interpretability** | 🟡 Low | 🟡 Medium (ensemble = grey box) | 🔴 Black box | 🔴 Black box |
+
+> ★ = current repository
+> Each project includes an XAI suite of 4 analysis scripts.
 
 ---
 
@@ -355,21 +370,6 @@ python xai_activations.py --tsne      # t-SNE projection
 python xai_shap.py --beeswarm         # SHAP beeswarm plot
 python xai_shap.py                    # all SHAP plots
 ```
-
----
-
-## ⚙️ Key Hyperparameters
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `GAMMA` | 0.99 | Discount factor — long horizon |
-| `LEARNING_RATE` | 3e-4 | Adam optimizer |
-| `BATCH_SIZE` | 128 | Mini-batch size |
-| `REPLAY_CAPACITY` | 100 000 | Replay buffer size |
-| `EPS_START / END` | 1.0 → 0.01 | ε-greedy exploration range |
-| `EPS_DECAY` | 0.9995 | Multiplicative decay per episode |
-| `TARGET_UPDATE_FREQ` | 1 000 steps | Hard update of target network |
-| `STAGNATION_LIMIT` | 200 steps | Max steps without eating before episode ends |
 
 ---
 
