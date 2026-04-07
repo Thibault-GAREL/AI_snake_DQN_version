@@ -67,10 +67,20 @@ def out(filename: str) -> str:
 #  Constantes
 # ═══════════════════════════════════════════════
 FEATURE_NAMES = [
-    "Mur N",  "Mur NE", "Mur E",  "Mur SE",
-    "Mur S",  "Mur SW", "Mur W",  "Mur NW",
-    "Food N", "Food NE","Food E", "Food SE",
-    "Food S", "Food SW","Food W", "Food NW",
+    # Danger distances [0:8]
+    "Mur N",       "Mur NE",      "Mur E",       "Mur SE",
+    "Mur S",       "Mur SW",      "Mur W",       "Mur NW",
+    # Food distances [8:16]
+    "Food N",      "Food NE",     "Food E",      "Food SE",
+    "Food S",      "Food SW",     "Food W",      "Food NW",
+    # Food delta [16:18]
+    "Food dX",     "Food dY",
+    # Danger binaire [18:22]
+    "Dng bin N",   "Dng bin E",   "Dng bin S",   "Dng bin W",
+    # Direction one-hot [22:26]
+    "Dir UP",      "Dir RIGHT",   "Dir DOWN",    "Dir LEFT",
+    # Contexte [26:28]
+    "Longueur",    "Urgence",
 ]
 ACTION_NAMES  = ["UP ↑", "RIGHT →", "DOWN ↓", "LEFT ←"]
 ACTION_COLORS = ["#4FC3F7", "#81C784", "#FFB74D", "#F06292"]
@@ -232,8 +242,9 @@ def compute_shap_values(agent: DQNAgent,
     states_t    = torch.tensor(states, dtype=torch.float32,
                                device=agent.device)
 
-    # shap_values : liste de 4 arrays [T, 16], un par output (action)
-    shap_values = explainer.shap_values(states_t)
+    # shap_values : liste de 4 arrays [T, 28], un par output (action)
+    # check_additivity=False nécessaire car LayerNorm n'est pas supporté par DeepExplainer
+    shap_values = explainer.shap_values(states_t, check_additivity=False)
     expected    = explainer.expected_value
 
     # ── Normalisation de la sortie SHAP ──────────────────────────────────────

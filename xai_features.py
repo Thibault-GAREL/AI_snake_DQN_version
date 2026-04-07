@@ -55,23 +55,22 @@ def out(filename: str) -> str:
 #  Noms des 16 features
 # ═══════════════════════════════════════════════
 FEATURE_NAMES = [
-    "Dist. mur  N",
-    "Dist. mur  NE",
-    "Dist. mur  E",
-    "Dist. mur  SE",
-    "Dist. mur  S",
-    "Dist. mur  SW",
-    "Dist. mur  W",
-    "Dist. mur  NW",
-    "Dist. food N",
-    "Dist. food NE",
-    "Dist. food E",
-    "Dist. food SE",
-    "Dist. food S",
-    "Dist. food SW",
-    "Dist. food W",
-    "Dist. food NW",
+    # Danger distances [0:8]
+    "Dist. mur  N",   "Dist. mur  NE",  "Dist. mur  E",   "Dist. mur  SE",
+    "Dist. mur  S",   "Dist. mur  SW",  "Dist. mur  W",   "Dist. mur  NW",
+    # Food distances [8:16]
+    "Dist. food N",   "Dist. food NE",  "Dist. food E",   "Dist. food SE",
+    "Dist. food S",   "Dist. food SW",  "Dist. food W",   "Dist. food NW",
+    # Food delta [16:18]
+    "Food delta X",   "Food delta Y",
+    # Danger binaire [18:22]
+    "Danger bin N",   "Danger bin E",   "Danger bin S",   "Danger bin W",
+    # Direction one-hot [22:26]
+    "Dir UP",         "Dir RIGHT",      "Dir DOWN",       "Dir LEFT",
+    # Contexte [26:28]
+    "Longueur",       "Urgence",
 ]
+N_FEATURES = len(FEATURE_NAMES)   # 28
 
 ACTION_NAMES  = ["UP ↑", "RIGHT →", "DOWN ↓", "LEFT ←"]
 ACTION_COLORS = ["#4FC3F7", "#81C784", "#FFB74D", "#F06292"]
@@ -369,11 +368,11 @@ def plot_weight_variance(l2_norms: np.ndarray, stds: np.ndarray, W: np.ndarray):
     norm_c = Normalize(vmin=l2_norms.min(), vmax=l2_norms.max())
     colors = [CMAP_VAR(norm_c(l2_norms[i])) for i in order]
 
-    ax1.barh(range(16), l2_norms[order], color=colors,
+    ax1.barh(range(N_FEATURES), l2_norms[order], color=colors,
              edgecolor="#0D1117", height=0.7)
-    ax1.set_yticks(range(16))
+    ax1.set_yticks(range(N_FEATURES))
     ax1.set_yticklabels([FEATURE_NAMES[i] for i in order],
-                        color=TEXT_COL, fontsize=8)
+                        color=TEXT_COL, fontsize=7)
     for i, v in enumerate(l2_norms[order]):
         ax1.text(v + 0.002, i, f"{v:.3f}", va="center",
                  color=TEXT_COL, fontsize=7)
@@ -386,11 +385,11 @@ def plot_weight_variance(l2_norms: np.ndarray, stds: np.ndarray, W: np.ndarray):
     order2 = np.argsort(stds)[::-1]
     colors2 = [CMAP_IMPORTANCE(norm_c(stds[i])) for i in order2]
 
-    ax2.barh(range(16), stds[order2], color=colors2,
+    ax2.barh(range(N_FEATURES), stds[order2], color=colors2,
              edgecolor="#0D1117", height=0.7)
-    ax2.set_yticks(range(16))
+    ax2.set_yticks(range(N_FEATURES))
     ax2.set_yticklabels([FEATURE_NAMES[i] for i in order2],
-                        color=TEXT_COL, fontsize=8)
+                        color=TEXT_COL, fontsize=7)
     for i, v in enumerate(stds[order2]):
         ax2.text(v + 0.0005, i, f"{v:.4f}", va="center",
                  color=TEXT_COL, fontsize=7)
@@ -412,7 +411,7 @@ def plot_weight_variance(l2_norms: np.ndarray, stds: np.ndarray, W: np.ndarray):
     cbar.ax.yaxis.set_tick_params(color=TEXT_COL, labelsize=7)
     plt.setp(cbar.ax.yaxis.get_ticklabels(), color=TEXT_COL)
 
-    ax3.set_yticks(range(16))
+    ax3.set_yticks(range(N_FEATURES))
     ax3.set_yticklabels(FEATURE_NAMES, color=TEXT_COL, fontsize=7)
     ax3.set_xlabel("Neurone (couche cachée 1, 64 premiers)", color=TEXT_COL, fontsize=8)
     ax3.set_title("Matrice des poids W₁ (features × neurones)",
@@ -425,9 +424,16 @@ def plot_weight_variance(l2_norms: np.ndarray, stds: np.ndarray, W: np.ndarray):
     ax4 = fig.add_subplot(gs[1, 1])
     ax4.set_facecolor(PANEL_BG)
 
-    # Couleur : murs (bleu) vs nourriture (orange)
-    colors_sc = [ACTION_COLORS[0] if i < 8 else ACTION_COLORS[2]
-                 for i in range(16)]
+    # Couleur par groupe : murs (bleu), nourriture (orange), food delta (jaune),
+    # danger bin (rouge), direction (vert), contexte (rose)
+    def _scatter_color(i):
+        if i < 8:  return ACTION_COLORS[0]   # bleu  → murs
+        if i < 16: return ACTION_COLORS[2]   # orange → nourriture
+        if i < 18: return "#FFF176"           # jaune → food delta
+        if i < 22: return "#EF5350"           # rouge → danger bin
+        if i < 26: return "#81C784"           # vert  → direction
+        return             "#F06292"          # rose  → contexte
+    colors_sc = [_scatter_color(i) for i in range(N_FEATURES)]
     sc = ax4.scatter(l2_norms, stds, c=colors_sc, s=90,
                      edgecolors="#222244", linewidths=0.8, zorder=3)
 

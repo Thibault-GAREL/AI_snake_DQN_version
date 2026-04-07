@@ -91,38 +91,74 @@ def get_qvalues(agent: DQNAgent, state: list) -> np.ndarray:
     return q.cpu().numpy().squeeze()   # shape [4]
 
 
-def build_state_at(col: int, row: int, food_col: int, food_row: int) -> list:
+def build_state_at(col: int, row: int, food_col: int, food_row: int,
+                   direction: str = "RIGHT") -> list:
     """
-    Construit un état normalisé en plaçant la tête du serpent
+    Construit un état normalisé à 28 features en plaçant la tête du serpent
     en (col, row) et la nourriture en (food_col, food_row).
-    Le serpent est de longueur 1 (pas de corps) pour éviter
-    les collisions parasites lors du scan de grille.
+    Serpent de longueur 1, urgence = 0 (début d'épisode).
+    Structure identique à SnakeEnv._get_state() dans main.py.
     """
-    # Créer un serpent temporaire d'un seul segment
-    tmp_snake = game.Manager_snake()
-    tmp_snake.add_snake(game.Snake(col * game.rect_width, row * game.rect_height))
+    W    = game.width
+    H    = game.height
+    rw   = game.rect_width
+    rh   = game.rect_height
 
-    tmp_food  = game.food(food_col * game.rect_width, food_row * game.rect_height)
+    tmp_snake           = game.Manager_snake()
+    tmp_snake.direction = direction
+    tmp_snake.add_snake(game.Snake(col * rw, row * rh))
+    tmp_food = game.food(food_col * rw, food_row * rh)
 
-    raw = [
-        game.distance_bord_north(tmp_snake),
-        game.distance_bord_north_est(tmp_snake),
-        game.distance_bord_est(tmp_snake),
-        game.distance_bord_south_est(tmp_snake),
-        game.distance_bord_south(tmp_snake),
-        game.distance_bord_south_west(tmp_snake),
-        game.distance_bord_west(tmp_snake),
-        game.distance_bord_north_west(tmp_snake),
-        game.distance_food_north(tmp_snake, tmp_food),
-        game.distance_food_north_est(tmp_snake, tmp_food),
-        game.distance_food_est(tmp_snake, tmp_food),
-        game.distance_food_south_est(tmp_snake, tmp_food),
-        game.distance_food_south(tmp_snake, tmp_food),
-        game.distance_food_south_west(tmp_snake, tmp_food),
-        game.distance_food_west(tmp_snake, tmp_food),
-        game.distance_food_north_west(tmp_snake, tmp_food),
+    head = tmp_snake.list_snake[0]
+
+    # [0:8] Distances obstacles, normalisées / diag
+    danger_distances = [
+        game.distance_bord_north(tmp_snake)      / DIAG,
+        game.distance_bord_north_est(tmp_snake)  / DIAG,
+        game.distance_bord_est(tmp_snake)        / DIAG,
+        game.distance_bord_south_est(tmp_snake)  / DIAG,
+        game.distance_bord_south(tmp_snake)      / DIAG,
+        game.distance_bord_south_west(tmp_snake) / DIAG,
+        game.distance_bord_west(tmp_snake)       / DIAG,
+        game.distance_bord_north_west(tmp_snake) / DIAG,
     ]
-    return [v / DIAG for v in raw]
+
+    # [8:16] Distances nourriture (sparse), normalisées / diag
+    food_distances = [
+        game.distance_food_north(tmp_snake, tmp_food)      / DIAG,
+        game.distance_food_north_est(tmp_snake, tmp_food)  / DIAG,
+        game.distance_food_est(tmp_snake, tmp_food)        / DIAG,
+        game.distance_food_south_est(tmp_snake, tmp_food)  / DIAG,
+        game.distance_food_south(tmp_snake, tmp_food)      / DIAG,
+        game.distance_food_south_west(tmp_snake, tmp_food) / DIAG,
+        game.distance_food_west(tmp_snake, tmp_food)       / DIAG,
+        game.distance_food_north_west(tmp_snake, tmp_food) / DIAG,
+    ]
+
+    # [16:18] Food delta continu
+    food_delta_x = (tmp_food.x - head.x) / W
+    food_delta_y = (tmp_food.y - head.y) / H
+
+    # [18:22] Danger binaire immédiat N/E/S/W (serpent d'1 segment → murs uniquement)
+    danger_N = 1.0 if head.y - rh < 0    else 0.0
+    danger_E = 1.0 if head.x + rw >= W   else 0.0
+    danger_S = 1.0 if head.y + rh >= H   else 0.0
+    danger_W = 1.0 if head.x - rw < 0    else 0.0
+
+    # [22:26] Direction one-hot
+    dir_UP    = 1.0 if direction == "UP"    else 0.0
+    dir_RIGHT = 1.0 if direction == "RIGHT" else 0.0
+    dir_DOWN  = 1.0 if direction == "DOWN"  else 0.0
+    dir_LEFT  = 1.0 if direction == "LEFT"  else 0.0
+
+    return (
+        danger_distances                             # [0:8]
+        + food_distances                             # [8:16]
+        + [food_delta_x, food_delta_y]               # [16:18]
+        + [danger_N, danger_E, danger_S, danger_W]   # [18:22]
+        + [dir_UP, dir_RIGHT, dir_DOWN, dir_LEFT]    # [22:26]
+        + [0.0, 0.0]                                 # [26:28] length_norm=0, urgency=0
+    )
 
 
 def scan_grid(agent: DQNAgent, food_col: int, food_row: int):
