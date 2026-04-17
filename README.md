@@ -1,4 +1,4 @@
-# 🐍 Snake AI Using Deep Q-Learning (DQN)
+# 🤖 Snake AI Using Deep Q-Learning (DQN)
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-orange.svg)
@@ -16,44 +16,87 @@
 
 ## 📝 Project Description
 
-This project is a **continuation** of my previous Snake AI series :
+This project is a **continuation** of my Snake AI series :
 
 - 🎮 The Snake game itself : [snake_game](https://github.com/Thibault-GAREL/snake_game)
 - 🧬 First AI version using NEAT (NeuroEvolution) : [AI_snake_genetic_version](https://github.com/Thibault-GAREL/AI_snake_genetic_version)
+- 🌳 Second AI version using Decision Trees : [AI_snake_decision_tree_version](https://github.com/Thibault-GAREL/AI_snake_decision_tree_version)
+- 🎯 Fourth AI version using PPO : [AI_snake_PPO_version](https://github.com/Thibault-GAREL/AI_snake_PPO_version)
 
-This time, the agent learns to play Snake using **Deep Q-Learning (DQN)** with PyTorch and CUDA support. Unlike NEAT which evolves a population of networks over generations, DQN is a **reinforcement learning** approach : a single agent interacts with the environment, stores its experiences in a replay buffer, and learns by minimizing the Bellman error. 🤖🎯
+This time, the agent learns to play Snake using **Deep Q-Learning (DQN)** with PyTorch and CUDA support. Unlike NEAT which evolves a population of networks over generations, DQN is a **reinforcement learning** approach : a single agent interacts with the environment, stores its experiences in a replay buffer, and learns by minimizing the Bellman error. Unlike the Decision Tree which imitates an oracle, DQN learns entirely by **trial and error** — no demonstrations, no supervision.
 
-The project also includes a full **Explainable AI (XAI)** suite to analyze what the network has actually learned, going beyond just performance metrics.
+The project also includes a full **Explainable AI (XAI)** suite to understand what the network has actually learned, going beyond just performance metrics.
+
+---
+
+## 🔬 Research Question
+
+> **How do we extract complex reasoning from a neural network?**
+
+Neural networks are often described as **black boxes**: their internal decision logic remains opaque despite producing relevant results. This project goes beyond training a performant agent — it applies **Explainable AI (XAI)** techniques to understand *why* the network makes the decisions it does.
+
+DQL is a paradigmatic black box: its Q-values are the result of three layers of non-linear transformations applied to 28 inputs, and no human can read its policy directly. Yet XAI tools — SHAP, permutation importance, UMAP projections — can uncover what the network learned to care about, and most importantly, **what it learned that NEAT and the Decision Tree never could**: a global awareness of the snake's own body size.
+
+---
+
+## 🎯 Context & Motivation
+
+The deeper motivation behind this project series is the **alignment problem** — one of the most important open challenges in AI. It refers to the difficulty of ensuring that AI systems act in accordance with human intentions, not just formal instructions.
+
+Concrete failures: an agent tasked with "maximizing cleanliness" might throw away useful objects (emergent objectives), hide dirt (reward hacking), or block humans from entering. The agent does exactly what it was told — not what was intended.
+
+This gap is hard to diagnose when you can't see inside the model. One key obstacle is the **black box problem**: deep neural networks make decisions through immense parameter spaces whose internal logic is effectively unreadable to humans. **Explainable AI (XAI)** is one answer — making AI reasoning transparent and interpretable.
+
+DQL is the first approach in this series where the agent develops a qualitatively different strategy from its predecessors — one that anticipates future constraints rather than simply reacting to the current state.
+
+---
+
+## 🩻 Interpretability Spectrum
+
+A key conceptual framework underlying the whole project series:
+
+| Box type | Definition | Example |
+| -------- | ---------- | ------- |
+| ⬜ White box | Fully readable logic — policy extractable directly | Q-table (tabular Q-learning) |
+| 🟨 Grey box | Transparent structure, unreadable complexity | XGBoost (80k–200k nodes) |
+| ⬛ Black box | Opaque internals despite good performance | **DQL (this project)** |
+| 🟩 NEAT | Small enough for manual inspection + XAI | NEAT (16 inputs, evolved topology) |
+
+DQL is the clearest example of a black box in this series: its learned strategy cannot be read from weights or tree nodes. **XAI tools are the only way in.** The paradox is that despite being the hardest to interpret, DQL has developed the most sophisticated strategy of the three approaches so far.
 
 ---
 
 ## 🚀 Features
 
-🧠 **Double DQN** with target network — reduces Q-value overestimation
+  🧠 **Double DQN** with target network — reduces Q-value overestimation
 
-⚡ **CUDA support** — automatic GPU detection and training
+  ⚡ **CUDA support** — automatic GPU detection and training
 
-🗂️ **Experience Replay** — 100k transition buffer for stable learning
+  🗂️ **Experience Replay** — 100k transition buffer for stable learning
 
-📉 **ε-greedy exploration** with exponential decay
+  📉 **ε-greedy exploration** with exponential decay
 
-💾 **Auto-save** — best model and periodic checkpoints
+  💾 **Auto-save** — best model and periodic checkpoints
 
-📊 **Full XAI suite** — 4 independent analysis scripts
+  📊 **Full XAI suite** — 4 independent analysis scripts
 
-📈 **Training logger** — CSV per episode + JSON summary + PNG learning curve
+  📈 **Training logger** — CSV per episode + JSON summary + PNG learning curve
 
-🎯 **28 standardized input features** — unified across all 4 Snake AI projects
+  🎯 **28 standardized input features** — extending the 26 of the Decision Tree with 2 new temporal features
 
 ---
 
 ## ⚙️ How it works
 
-🕹️ The AI controls a snake on a 10×8 grid (800×400 pixels). At each step, it receives a **state vector of 28 standardized features** (distances to obstacles, food directions, immediate danger, current direction, and temporal context) and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT).
+  🕹️ The AI controls a snake on a 10×8 grid. At each step, it receives a **state vector of 28 features** and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT). Crucially, the outputs are **unbounded Q-values** — not probabilities or tanh scores — which changes how XAI tools read the model compared to NEAT or the Decision Tree.
 
-🧠 The network is a fully-connected MLP (28 → 256 → 256 → 128 → 4) with **LayerNorm** on the first two layers, trained with the Double DQN algorithm. A separate target network is updated every 1 000 steps to stabilize training.
+  🧠 **Phase 1 — Exploration** : the agent starts with ε = 1.0 (pure random) and fills the replay buffer with diverse experiences. Each (state, action, reward, next_state) transition is stored.
 
-📈 A reward shaping signal guides the agent toward food even before it reaches it, making early training much more efficient. A **stagnation limit** (200 steps without eating) prevents the agent from looping endlessly.
+  🎯 **Phase 2 — Learning** : once the buffer is large enough, mini-batches of 128 transitions are sampled. The network minimizes the Bellman error: `Q(s,a) ← r + γ · max Q_target(s', a')`. A separate **target network** is updated every 1 000 steps to stabilize training.
+
+  📉 **Phase 3 — Exploitation** : ε decays from 1.0 to 0.01 over training. The agent progressively shifts from exploration to exploitation of its learned Q-function.
+
+  ⏱️ A **stagnation limit** (200 steps without eating) prevents infinite loops and forces the agent to explore.
 
 ---
 
@@ -63,8 +106,10 @@ The project also includes a full **Explainable AI (XAI)** suite to analyze what 
 Input (28)  →  Linear(256) → LayerNorm → ReLU
             →  Linear(256) → LayerNorm → ReLU
             →  Linear(128) → ReLU
-            →  Linear(4)   →  Q-values
+            →  Linear(4)   →  Q-values (unbounded)
 ```
+
+The two new features compared to the Decision Tree — **snake length** and **urgency** — have the highest L2 norms in the first weight matrix (21.4 and 19.6 respectively), showing that the network immediately identified them as the most structurally important inputs. This is a clear signal that DQL learned something NEAT and the Decision Tree never integrated: a form of **global self-awareness**.
 
 <details>
 <summary>📋 State vector — 28 standardized input features</summary>
@@ -125,14 +170,14 @@ Distance to food in 8 directions. Non-zero only when food is exactly aligned.
 | 24 | `dir_DOWN` | 0.0 or 1.0 |
 | 25 | `dir_LEFT` | 0.0 or 1.0 |
 
-### Group 6 — Temporal context (2 features)
+### Group 6 — Temporal context (2 features) ← new vs. Decision Tree
 
 | # | Feature | Range |
 |---|---------|-------|
 | 26 | `length_norm` — (snake_length − 1) / (max_cells − 1) | [0, 1] |
 | 27 | `urgency` — steps_since_food / MAX_STEPS | [0, 1] |
 
-### Output — 4 actions
+### Output — 4 Q-values
 
 | # | Action |
 |---|--------|
@@ -204,96 +249,139 @@ One of the key aspects of this project is understanding **what the network actua
 | `xai_activations.py` | Dead neurons, specialization, t-SNE / UMAP projection | `xai_activations/` |
 | `xai_shap.py` | SHAP DeepExplainer — beeswarm, waterfall, force plots, summary heatmap | `xai_shap/` |
 
+**Key findings from XAI analysis (baseline score: 28.2 apples) :**
+
+- 📍 **Food delta Y** is the top permutation feature (score drop −25.4), followed by **Food delta X** (−25.15) — relative food displacement dominates over absolute distances
+- 🔑 **Length (#3, −23.9) and Urgency (#4, −23.3)** — the two features absent from all previous experiments — are the third and fourth most important. The network developed something NEAT and the Decision Tree never had: a **global awareness of the snake's own state**
+- 🌐 **SHAP global**: Length is the most influential feature across all actions combined (|SHAP| = 16.55) — the longer the snake, the more it adapts its trajectory. This is a qualitatively different strategy from food-chasing
+- 🧠 **Dead neurons**: 72/256 dead (28.1%) in layer 1 — a ReLU phenomenon absent from NEAT (tanh never saturates to zero). Layers 2 and 3 have **zero dead neurons**, showing that LayerNorm acts as a regulator in deeper layers
+- 🗺️ **UMAP projections** show a progressive and very clear structuration of internal states layer by layer, with near-perfect situation separation in layer 3 — sign of a rich internal representation
+- 📊 **Policy map**: large coherent decision zones, stable Q-values over long sequences, sharp drops only at high-risk transitions
+
 <details>
-<summary>📸 See the XAI analyses — results & interpretation</summary>
+<summary>📸 Q-values analysis — xai_qvalues.py</summary>
 
----
+Shows **what the network "thinks"** at each cell of the grid. The Q-value heatmaps reveal which action the model estimates as most valuable per position (food fixed), the confidence map shows where the agent is decisive vs. uncertain, and the temporal evolution tracks how Q-values shift step by step during real episodes — **Q-values are unbounded** here, unlike the probabilities or tanh scores of NEAT and the Decision Tree.
 
-### 🔷 Q-values analysis (`xai_qvalues.py`)
+### Q-value heatmaps
 
-#### Q-value heatmaps
 ![xai_heatmaps](xai_qvalues/xai_heatmaps.png)
 
-Each subplot shows the Q-value estimated by the network for one action, at every cell of the grid (food fixed at column 5, row 3 — marked with ★). The dominant color is warm (positive Q-values), which means the agent generally sees all positions as potentially rewarding. The **border cells** show clearly colder (darker/blue) values for dangerous actions — for example the RIGHT heatmap shows a dark blue column on the right wall, and the UP heatmap darkens near the top row. This confirms the network has learned to discount actions that lead toward walls.
+### Confidence map & learned policy
 
-#### Confidence map & learned policy
 ![xai_confidence](xai_qvalues/xai_confidence.png)
 
-The left map shows `Q_max − Q_2nd_max` : almost the entire grid is dark (near zero gap), meaning the agent is **systematically uncertain** — it rarely has a strongly dominant action. Only two cells stand out with a high gap : the top-left corner (forced UP) and the bottom-right corner (forced LEFT), which are border situations where the choice is obvious. The right map shows the learned policy with one arrow per cell : the agent tends to steer **LEFT and UP** in most of the grid, which is consistent with a strategy of circling back toward the food placed in the upper-center.
+### Temporal Q-value evolution
 
-#### Temporal Q-value evolution
 ![xai_temporal](xai_qvalues/xai_temporal.png)
 
-Three episodes are shown. **Episode 1** (score 0, 500 steps) shows a very regular oscillating pattern where Q-values for all 4 actions alternate symmetrically — the agent is stuck in a loop, going back and forth without eating. **Episode 2** (score 0, 500 steps) is the most interesting : all 4 Q-values are nearly flat and perfectly superimposed around 5.5, with almost no variance — the agent has converged to a near-constant policy that avoids death but never finds the food. **Episode 3** (score 5, 57 steps) shows a much more dynamic pattern : Q-values fluctuate strongly, food events (green dotted lines) coincide with Q-value spikes, and the red death line appears at the end after a last sharp divergence between actions.
+</details>
 
----
+<details>
+<summary>📸 Feature importance — xai_features.py</summary>
 
-### 🔷 Feature importance (`xai_features.py`)
+Answers the question: **which features actually drive the decisions?** Permutation importance measures the score drop when each feature is shuffled. The weight analysis of the first layer (L2 norms) exposes structural importance before any non-linearity. The correlation heatmap and sensory profiles show which feature tends to trigger which action.
 
-#### Permutation importance
+Key finding: **ΔFood Y and ΔFood X dominate**, but the real revelation is **Length and Urgency** rising to 3rd and 4th — two features absent from all previous experiments. The L2 norm analysis of W₁ confirms it: Length (21.4) and Urgency (19.6) have the largest norms by far, meaning the first layer immediately identified them as the most structurally connected inputs.
+
+### Permutation importance
+
 ![xai_permutation](xai_features/xai_permutation.png)
 
-When any feature is shuffled, the score drops by approximately **6.5 to 8.5 points** from a baseline of 8.55 — which means **every single feature is critical**. No feature can be removed without a near-total collapse in performance. The ranking shows `Dist. food W` as the most important (drop = 8.45), followed closely by all other food distances, then wall distances. The radar chart confirms this : the polygon is **large and nearly regular**, meaning no single feature dominates — the agent relies on the full 16-dimensional state equally. This is a strong sign that the network has not found shortcuts and genuinely uses all available information.
+### Weight analysis (W₁ — first layer)
 
-#### Weight variance (W₁ analysis)
 ![xai_variance](xai_features/xai_variance.png)
 
-The L2 norm of each input column in the first weight matrix shows **wall distances systematically dominate** (Mur NE = 8.07, Mur NW = 7.91, Mur SE = 7.90) while food diagonal distances are lowest (Food SE = 4.18, Food NW = 4.62). The scatter plot (bottom right) places all wall features in the **high L2 / high std quadrant** (strong importance) while food diagonal features fall in the bottom-left (lower structural weight). This suggests the first layer focuses more on obstacle avoidance than food tracking — directional food alignment is handled later in the network.
+### Feature-action correlation
 
-#### Feature-action correlation
 ![xai_correlation](xai_features/xai_correlation.png)
 
-The Pearson correlation heatmap reveals clean and interpretable patterns : `Dist. food N` correlates strongly with UP (r = +0.30), `Dist. food E` with RIGHT (r = +0.30), `Dist. mur SE` with DOWN (r = +0.20), and `Dist. mur W` with LEFT (r = +0.20). Wall distances show negative correlations with the action that would lead toward them, confirming the agent avoids obstacles. The food distance features act as triggers : when food is visible in a direction, the agent is more likely to move that way.
+### Sensory profile per action
 
-#### Sensory profile per action
 ![xai_mean_per_action](xai_features/xai_mean_per_action.png)
 
-For each action, all 16 features are near zero in the **food rows** (top half), except for the directionally relevant one. For example, when choosing UP, `Dist. food N` has a non-zero mean while all other food features are 0. The **wall features** (bottom half) all show consistent non-zero values across all actions, reflecting that wall proximity information is always present regardless of the decision. Each action has a slightly distinct wall distance profile, confirming the agent integrates spatial context when deciding.
+</details>
 
----
+<details>
+<summary>📸 Internal activations — xai_activations.py</summary>
 
-### 🔷 Internal activations (`xai_activations.py`)
+Looks inside the hidden layers. The dead neuron analysis reveals an **asymmetric situation**: layer 1 has 72/256 dead neurons (28.1%) — a ReLU-specific phenomenon where units that never fire carry no information — while layers 2 and 3 have **none**, showing LayerNorm prevents saturation in deeper layers. The UMAP projections show a progressive and very clear structuration of game states layer by layer, reaching near-perfect separation in layer 3 — a sign the network has learned a rich, hierarchical internal representation.
 
-#### Distribution & dead neurons
+### Distribution & dead neurons
+
 ![xai_distribution](xai_activations/xai_distribution.png)
 
-The histograms (left column) show a heavily **right-skewed exponential distribution** for all three layers — most activations are near zero, with a long sparse tail of high values. This is typical of ReLU networks with sparse representations. The dead neuron analysis (middle column) reveals a severe situation : **Layer 1 has 45.7% dead neurons** (117/256), **Layer 2 has 75%** (96/128), and **Layer 3 has 73.4%** (47/64). This progressive increase in dead neuron rate suggests significant under-utilization of capacity — the network has converged to a sparse solution using only ~25-55% of its neurons. The temporal heatmaps (right column) confirm this : only the top rows (highest variance neurons) show intermittent activity, while most neurons (dark blue) remain completely silent throughout the 200 steps.
+### Neuron specialization
 
-#### Neuron specialization
 ![xai_specialization](xai_activations/xai_specialization.png)
 
-The specialization score distributions (left column) show most neurons have scores near zero (not specialized), but a small fraction exhibits scores up to 0.58 (Layer 1), 1.66 (Layer 2), and 1.34 (Layer 3). The heatmaps (center column) reveal that **"Food alignée H"** consistently activates the most specialized neurons across all layers — this situation has very few observations (n=12), making neurons that respond to it stand out strongly. The **"Neutre"** and **"Danger"** situations dominate in terms of volume (n=488–640) but produce more distributed activations. The top-5 neuron profiles (right column) show Layer 2 neuron #10 as the most specialized (score=1.66), nearly exclusively active during horizontal food alignment — a dedicated "food east/west detector" neuron.
+### t-SNE projection of internal activations
 
-#### t-SNE projection
 ![xai_tsne](xai_activations/xai_tsne.png)
 
-The t-SNE projections across all 3 layers show a **diffuse cloud with no clear cluster separation** when colored by situation or action. This contrasts with what a well-disentangled representation would show (distinct colored clusters). However, the score-colored view reveals a subtle gradient : higher-score states (orange/red) tend to appear slightly more concentrated toward the center of the cloud, while zero-score states (dark blue) are scattered at the periphery. The lack of clean clustering suggests the network has learned a **continuous, overlapping representation** rather than discrete situation-specific modes.
+### UMAP projection
 
-#### UMAP projection
 ![xai_umap](xai_activations/xai_umap.png)
 
-The UMAP projections show a striking contrast with t-SNE : the activations collapse into a **very dense central cluster** with a small number of isolated outlier points. This extreme density suggests the network's internal representations are highly similar across most game states — it processes the majority of situations in a near-identical way, only producing distinct activations for a few exceptional states (the outlier points). The isolated points in Layer 3 (64n) correspond to rare situations such as food alignment or corner positions, confirming that the final layer slightly differentiates edge cases from the common baseline.
+</details>
 
----
+<details>
+<summary>📸 SHAP analysis — xai_shap.py</summary>
 
-### 🔷 SHAP analysis (`xai_shap.py`)
+Uses **SHAP DeepExplainer** to decompose every prediction into per-feature contributions. The beeswarm gives a global ranking of feature impact across all decisions and actions. The waterfall plots break down one specific decision per game situation. The summary heatmap shows signed SHAP values per feature × action, revealing which features push the model toward or away from each action.
 
-#### Beeswarm plot
+Key finding: **Length is the most influential feature globally** (|SHAP| = 16.55), with a strong positive impact on **all four directions** — the longer the snake, the more it adapts its trajectory in every dimension. This is direct evidence of a strategy that goes beyond food proximity, anticipating body constraints.
+
+#### Beeswarm plot (global feature impact)
 ![xai_shap_beeswarm](xai_shap/xai_shap_beeswarm.png)
 
-The beeswarm plots show that **wall distance features dominate SHAP impact** across all 4 actions, with food features contributing very little individually. The spread of SHAP values is much wider for wall features (reaching ±10) than for food features (mostly within ±1). High-value wall features (red dots) tend to have strong negative SHAP values — a wall that is very close sharply reduces the Q-value of the action pointing toward it. The food features show almost no color variation (all cold blue), meaning their values are rarely non-zero, which is consistent with the sparse directional food encoding used in the state vector.
-
-#### Waterfall plots
+#### Waterfall plots (per game situation)
 ![xai_shap_waterfall](xai_shap/xai_shap_waterfall.png)
-
-In all 8 situations, the agent systematically chooses **LEFT** as the dominant action, starting from a base value E[f(x)] ≈ 4.5–6.5 and accumulating positive contributions from wall features to reach a final Q-value around 5.5–7.5. The **"Food alignée V"** situation shows the smallest final Q-value (~5.3), with the most balanced positive/negative contributions — the agent is least certain in this case. The **Danger situations** (N, E, S, W) all show a large positive contribution from the wall feature of the opposite direction (`Mur W` contributing +1.35 in Danger N, +0.80 in Danger W), confirming the agent is pushed away from the danger by the wall distance signal on the safe side.
 
 #### SHAP summary heatmap
 ![xai_shap_heatmap](xai_shap/xai_shap_heatmap.png)
 
-The global importance ranking (bottom left) confirms wall distances are the most impactful features : `Mur W` (0.503), `Mur NW` (0.448), `Mur E` (0.438) lead the ranking, while food diagonal features (Food SW, Food NE, Food SE) are nearly irrelevant (< 0.01). The signed SHAP heatmap (top right) shows that wall features have **strong positive SHAP values for LEFT** (`Mur NW` = +0.252, `Mur W` = +0.172, `Mur SW` = +0.206), meaning the network is biased toward turning left when walls are on the right side. The feature × situation heatmap (bottom right) reveals `Dist. food W` becomes extremely important specifically during **"Food alignée H"** (horizontal alignment), which is the one situation where the food is directly to the west — confirming the network correctly focuses on the relevant directional feature when food is visible.
-
 </details>
+
+---
+
+## 💡 Key Insights
+
+**DQL learned something the previous approaches never could**
+The two new features — Length and Urgency — were absent from NEAT (16 inputs) and the Decision Tree (26 inputs). Yet DQL immediately leveraged them as its most structurally connected inputs (highest L2 norms in W₁) and its 3rd and 4th most impactful features by permutation. The network developed a form of **global self-awareness**: the longer the snake, the more it adapts its path. NEAT and the Decision Tree navigate toward food; DQL **anticipates the constraints of its own body**.
+
+**Unbounded Q-values change the XAI reading**
+Unlike NEAT (tanh outputs) and the Decision Tree (probabilities), DQL outputs raw Q-values. This means:
+- High Q-values signal confident long-term reward estimates, not just immediate preferences
+- The temporal evolution shows Q-values staying **stable and elevated during safe sequences**, with sharp drops only at risky transitions — the agent evaluates futures, not just states
+- SHAP values decompose Q-value predictions rather than probabilities, giving a different interpretation scale
+
+**Dead neurons are not necessarily a problem**
+Layer 1 shows 72/256 dead neurons (28.1%) — an inherent ReLU consequence absent from NEAT (tanh) and the Decision Tree (non-neural). Yet layers 2 and 3 have zero dead neurons thanks to LayerNorm. The network routes the full representational load through a sparse first layer into dense deeper layers. A potential optimization: prune the dead units to reduce memory and compute with no performance cost.
+
+**UMAP reveals a rich internal hierarchy**
+The progressive structuration of states layer by layer — with near-perfect separation in the final hidden layer — confirms the network has learned a hierarchical, disentangled representation. The same game situation is processed very differently at each depth, culminating in a clean latent space where similar situations cluster together.
+
+### Learned strategy comparison across the 4 experiments
+
+| Agent | Strategy type | Most influential feature |
+| ----- | ------------- | ------------------------ |
+| NEAT | Circular, food-chasing, fixed | `food_N` (food distance North) |
+| Decision Tree | Reactive, danger-aware, adaptive | `ΔFood Y` + `Danger E/W` |
+| **DQL** | **Size-aware, body-anticipating** | **`Length` + `ΔFood X/Y`** |
+| PPO | Symmetric risk, end-game anticipation | `Danger binary` (all directions) |
+
+---
+
+## 🔭 Perspectives
+
+  🗺️ **Saliency Maps** — the natural next step: apply XAI to image recognition models, highlighting the exact pixels that triggered a decision (e.g., a cat's ears to classify it as a cat).
+
+  🤖 **Automated XAI** — move from human-driven data science analysis to an AI that automatically analyzes any model and produces a readable strategy summary. Current tools are fast but shallow; an intelligent XAI system could reveal complex multi-feature interactions that no human would manually uncover.
+
+  🏛️ **Neural network analysis database** — build a dataset of diverse trained agents, then train an AI to generalize: input a model, output its strategy in human-readable form.
+
+  🧹 **Optimization via XAI** — the 72 dead neurons identified in layer 1 could directly guide model pruning: fewer parameters, same performance, lower compute cost and ecological footprint.
 
 ---
 
@@ -328,6 +416,7 @@ The global importance ranking (bottom left) confirms wall distances are the most
 ├── xai_activations/        # Output plots — Activations
 ├── xai_shap/               # Output plots + HTML — SHAP
 │
+├── Rapport MPP - Thibault GAREL - 2026-04-13.pdf   # Full analysis report
 ├── LICENSE
 └── README.md
 ```
@@ -374,14 +463,29 @@ python main.py --eval                 # greedy evaluation, visual
 python xai_qvalues.py                 # all Q-value plots
 python xai_features.py                # all feature importance plots
 python xai_activations.py --tsne      # t-SNE projection
+python xai_activations.py --umap      # UMAP projection
 python xai_shap.py --beeswarm         # SHAP beeswarm plot
 python xai_shap.py                    # all SHAP plots
 ```
 
 ---
 
-## 📖 Inspiration / Sources
+## 📄 Full Report
 
-Built entirely from scratch 😆 !
+A detailed report accompanies this project series, covering the full analysis : training methodology, manual interpretability, XAI results, and comparison across all 4 Snake AI approaches (NEAT, Decision Tree, DQL, PPO).
 
-Code created by me 😎, Thibault GAREL — [Github](https://github.com/Thibault-GAREL)
+📥 [Download the report (PDF)](Rapport%20MPP%20-%20Thibault%20GAREL%20-%202026-04-13.pdf)
+
+---
+
+## 📚 Sources & Research Papers
+
+- **NEAT algorithm** — [*Evolving Neural Networks through Augmenting Topologies*](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf), Stanley & Miikkulainen (2002)
+- **XGBoost** — [*A Scalable Tree Boosting System*](https://arxiv.org/abs/1603.02754), Tianqi Chen (2016)
+- **DAgger** — [*A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning*](https://arxiv.org/abs/1011.0686), Ross et al. (2011)
+- **Deep Q-Learning** — [*A Theoretical Analysis of Deep Q-Learning*](https://arxiv.org/abs/1901.00137), Zhuoran Yang (2019)
+- **PPO** — [*Proximal Policy Optimization Algorithms*](https://arxiv.org/abs/1707.06347), John Schulman (2017)
+- **XAI Survey** — [*Explainable AI: A Survey of Needs, Techniques, Applications, and Future Direction*](https://arxiv.org/abs/2409.00265), Mersha et al. (2024)
+- *L'Intelligence Artificielle pour les développeurs* — Virginie Mathivet (2014)
+
+Code created by me 😎, Thibault GAREL — [GitHub](https://github.com/Thibault-GAREL)
