@@ -66,41 +66,7 @@ DQL is the clearest example of a black box in this series: its learned strategy 
 
 ---
 
-## 🚀 Features
-
-  🧠 **Double DQN** with target network — reduces Q-value overestimation
-
-  ⚡ **CUDA support** — automatic GPU detection and training
-
-  🗂️ **Experience Replay** — 100k transition buffer for stable learning
-
-  📉 **ε-greedy exploration** with exponential decay
-
-  💾 **Auto-save** — best model and periodic checkpoints
-
-  📊 **Full XAI suite** — 4 independent analysis scripts
-
-  📈 **Training logger** — CSV per episode + JSON summary + PNG learning curve
-
-  🎯 **28 standardized input features** — extending the 26 of the Decision Tree with 2 new temporal features
-
----
-
-## ⚙️ How it works
-
-  🕹️ The AI controls a snake on a 10×8 grid. At each step, it receives a **state vector of 28 features** and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT). Crucially, the outputs are **unbounded Q-values** — not probabilities or tanh scores — which changes how XAI tools read the model compared to NEAT or the Decision Tree.
-
-  🧠 **Phase 1 — Exploration** : the agent starts with ε = 1.0 (pure random) and fills the replay buffer with diverse experiences. Each (state, action, reward, next_state) transition is stored.
-
-  🎯 **Phase 2 — Learning** : once the buffer is large enough, mini-batches of 128 transitions are sampled. The network minimizes the Bellman error: `Q(s,a) ← r + γ · max Q_target(s', a')`. A separate **target network** is updated every 1 000 steps to stabilize training.
-
-  📉 **Phase 3 — Exploitation** : ε decays from 1.0 to 0.01 over training. The agent progressively shifts from exploration to exploitation of its learned Q-function.
-
-  ⏱️ A **stagnation limit** (200 steps without eating) prevents infinite loops and forces the agent to explore.
-
----
-
-## 🗺️ Network Architecture
+## 🗺️ How it works
 
 ```
 Input (28)  →  Linear(256) → LayerNorm → ReLU
@@ -109,7 +75,13 @@ Input (28)  →  Linear(256) → LayerNorm → ReLU
             →  Linear(4)   →  Q-values (unbounded)
 ```
 
-The two new features compared to the Decision Tree — **snake length** and **urgency** — have the highest L2 norms in the first weight matrix (21.4 and 19.6 respectively), showing that the network immediately identified them as the most structurally important inputs. This is a clear signal that DQL learned something NEAT and the Decision Tree never integrated: a form of **global self-awareness**.
+The two new features compared to the Decision Tree (**snake length** and **urgency**) have the highest L2 norms in the first weight matrix (21.4 and 19.6 respectively), showing that the network immediately identified them as the most structurally important inputs. This is a clear signal that DQL learned something NEAT and the Decision Tree never integrated: a form of **global self-awareness**.
+
+- The AI controls a snake on a 10×8 grid. At each step, it receives a **state vector of 28 features** and outputs **Q-values for 4 actions** (UP, RIGHT, DOWN, LEFT). Crucially, the outputs are **unbounded Q-values**: not probabilities or tanh scores, which changes how XAI tools read the model compared to NEAT or the Decision Tree.
+- **Phase 1: Exploration** : the agent starts with ε = 1.0 (pure random) and fills the replay buffer with diverse experiences. Each (state, action, reward, next_state) transition is stored.
+- **Phase 2: Learning** : once the buffer is large enough, mini-batches of 128 transitions are sampled. The network minimizes the Bellman error: `Q(s,a) ← r + γ · max Q_target(s', a')`. A separate **target network** is updated every 1 000 steps to stabilize training.
+- **Phase 3: Exploitation** : ε decays from 1.0 to 0.01 over training. The agent progressively shifts from exploration to exploitation of its learned Q-function.
+- A **stagnation limit** (200 steps without eating) prevents infinite loops and forces the agent to explore.
 
 <details>
 <summary>📋 State vector — 28 standardized input features</summary>
